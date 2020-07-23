@@ -1,0 +1,8 @@
+{
+    "Hello": "hi",
+    "Goodbye": "bye",
+    "Why": {
+        "Because": 1000,
+        "Can": true
+    }
+}
