@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::tokenizer::{Tokenizer, Tokens};
 use crate::errors::TokenError;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum JSON {
     Boolean(bool),
     Integer(i64),
@@ -96,7 +96,7 @@ impl<'a> Parser<'a> {
         arr
     }
 
-    fn parse_object (&mut self) -> HashMap<String, JSON> {
+    fn parse_object(&mut self) -> HashMap<String, JSON> {
         let mut object: HashMap<String, JSON> = HashMap::new();
         let mut current_keyword = String::new();
         let mut next_val = vec!["obj keyword", "}"];

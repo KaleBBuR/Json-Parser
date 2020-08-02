@@ -52,11 +52,10 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn parse_string(&mut self, first_char: char) -> Option<Tokens> {
+    fn parse_string(&mut self) -> Option<Tokens> {
         let mut slash =  false;
         let mut value = String::new();
 
-        value.push(first_char);
         'string: while let Some(character) = self.json_source.next() {
             match character {
                 '\\' => {
@@ -64,8 +63,8 @@ impl<'a> Tokenizer<'a> {
                     slash = true;
                 },
                 '"' => {
-                    value.push(character);
                     if slash {
+                        value.push(character);
                         slash = false;
                         continue 'string;
                     }
@@ -115,7 +114,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                 ']' => Tokens::ClosingBracket,
                 ':' => Tokens::Colon,
                 ',' => Tokens::Comma,
-                '"' => self.parse_string(character)?,
+                '"' => self.parse_string()?,
                 '0'..='9' => self.parse_number(character)?,
                 'a'..='z' => self.parse_value(character)?,
                 _ => {
