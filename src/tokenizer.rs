@@ -18,13 +18,17 @@ pub enum Tokens {
 }
 
 pub struct Tokenizer<'a> {
-    pub json_source: Peekable<Chars<'a>>
+    pub json_source: Peekable<Chars<'a>>,
+    _line: usize,
+    _char: usize,
 }
 
 impl<'a> Tokenizer<'a> {
     pub fn new(s: &'a str) -> Self {
         Self {
             json_source: s.chars().peekable(),
+            _line: 1,
+            _char: 0
         }
     }
 
@@ -33,6 +37,7 @@ impl<'a> Tokenizer<'a> {
 
         value.push(first_char);
         'value: while let Some(character) = self.json_source.peek() {
+            self._char += 1;
             match character {
                 'a'..='z' => {
                     value.push(*character);
@@ -57,6 +62,7 @@ impl<'a> Tokenizer<'a> {
         let mut value = String::new();
 
         'string: while let Some(character) = self.json_source.next() {
+            self._char += 1;
             match character {
                 '\\' => {
                     value.push(character);
@@ -86,6 +92,7 @@ impl<'a> Tokenizer<'a> {
 
         number.push(first_char);
         'number: while let Some(character) = self.json_source.peek() {
+            self._char += 1;
             match character {
                 '0'..='9'| '.' => {
                     number.push(*character);
@@ -103,24 +110,29 @@ impl<'a> Tokenizer<'a> {
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
-    type Item = Tokens;
+    type Item = (Tokens, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
         'tokenizer: while let Some(character) = self.json_source.next() {
+            match character {
+                '\n' => { self._line += 1; self._char = 0; },
+                _ => self._char += 1,
+            };
+
             return Some(match character {
-                '{' => Tokens::OpeningCurlyBrace,
-                '}' => Tokens::ClosingCurlyBrace,
-                '[' => Tokens::OpeningBracket,
-                ']' => Tokens::ClosingBracket,
-                ':' => Tokens::Colon,
-                ',' => Tokens::Comma,
-                '"' => self.parse_string()?,
-                '0'..='9' => self.parse_number(character)?,
-                'a'..='z' => self.parse_value(character)?,
+                '{' => (Tokens::OpeningCurlyBrace, self._line, self._char),
+                '}' => (Tokens::ClosingCurlyBrace, self._line, self._char),
+                '[' => (Tokens::OpeningBracket, self._line, self._char),
+                ']' => (Tokens::ClosingBracket, self._line, self._char),
+                ':' => (Tokens::Colon, self._line, self._char),
+                ',' => (Tokens::Comma, self._line, self._char),
+                '"' => (self.parse_string()?, self._line, self._char),
+                '0'..='9' => (self.parse_number(character)?, self._line, self._char),
+                'a'..='z' => (self.parse_value(character)?, self._line, self._char),
                 _ => {
                     if character.is_whitespace() { continue 'tokenizer; } else { panic!("Unknown Character: {}", character) }
                 }
-            });
+            })
         }
 
         None

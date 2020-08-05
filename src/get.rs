@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops;
 
 use crate::parser::JSON;
-// use crate::expression::Expressions;
+use crate::expression::{Expression, ParseExpression};
 
 impl JSON {
     pub fn new_arr() -> JSON {
@@ -19,8 +19,12 @@ impl JSON {
     // where
     //     S: Into<&'a str>
     // {
-    //     Expressions::new(expression).parse_expression()
+    //     Expressions::new(expression, self).parse_expression()
     // }
+
+    pub fn test_get_expressions(&self, expression: &str) -> Vec<Expression> {
+        ParseExpression::new(expression, &self).get_expression()
+    }
 
     pub fn get_arr(&self) -> Option<Vec<JSON>> {
         match self {

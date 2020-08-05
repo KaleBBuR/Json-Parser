@@ -26,17 +26,18 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(&mut self) -> JSON {
-        match self.tokenizer.next().expect("No value!") {
+        let token_data = self.tokenizer.next().expect("No value!");
+        match token_data.0 {
             Tokens::OpeningCurlyBrace => JSON::Object(self.parse_object()),
             Tokens::OpeningBracket => JSON::Array(self.parse_array()),
             _ => panic!("Unexpected Beginning of file. Expected '{{' or '[' ")
         }
     }
 
-    fn step(&mut self) -> Option<Tokens> {
-        let step = self.tokenizer.next();
-        if step.is_some() {
-            Some(step.unwrap())
+    fn step(&mut self) -> Option<(Tokens, usize, usize)> {
+        let token_data = self.tokenizer.next();
+        if token_data.is_some() {
+            Some(token_data.unwrap())
         } else {
             None
         }
@@ -49,41 +50,41 @@ impl<'a> Parser<'a> {
         'arr: loop {
             match self.step() {
                 Some(token) => {
-                    match token {
+                    match token.0 {
                         Tokens::OpeningCurlyBrace => if next_val.contains(&"arr value") {
                             next_val = vec![",", "]"];
                             arr.push(JSON::Object(self.parse_object()))
                         } else {
-                            panic!("{}", TokenError::ExpectedValue(next_val));
+                            panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                         },
                         Tokens::ClosingCurlyBrace => panic!("{}", TokenError::UnexpectedValue(&"}")),
-                        Tokens::ClosingBracket => if next_val.contains(&"]") { break 'arr } else { panic!("{}", TokenError::ExpectedValue(next_val)); },
+                        Tokens::ClosingBracket => if next_val.contains(&"]") { break 'arr } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); },
                         Tokens::OpeningBracket => {
-                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::Array(self.parse_array()))
                         },
                         Tokens::String(ref string_val) => {
-                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::String(string_val.to_owned()))
                         },
                         Tokens::Boolean(bool_val) => {
-                            if next_val.contains(&"arr_value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr_value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::Boolean(bool_val))
                         },
                         Tokens::Integer(int_val) => {
-                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::Integer(int_val))
                         },
                         Tokens::Float(float_val) => {
-                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::Float(float_val))
                         },
                         Tokens::Null => {
-                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&"arr value") { next_val = vec![",", "]"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             arr.push(JSON::Null)
                         },
                         Tokens::Comma => {
-                            if next_val.contains(&",") { next_val = vec!["arr value"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&",") { next_val = vec!["arr value"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                             continue 'arr
                         },
                         Tokens::Colon => panic!("{}", TokenError::UnexpectedValue(":"))
@@ -104,23 +105,23 @@ impl<'a> Parser<'a> {
         'obj: loop {
             match self.step() {
                 Some(token) => {
-                    match token {
+                    match token.0 {
                         Tokens::OpeningCurlyBrace =>  {
                             if next_val.contains(&"obj value") {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Object(self.parse_object()));
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
-                        Tokens::ClosingCurlyBrace => if next_val.contains(&"}") { break 'obj } else { panic!(TokenError::ExpectedValue(next_val)); },
+                        Tokens::ClosingCurlyBrace => if next_val.contains(&"}") { break 'obj } else { panic!(TokenError::ExpectedValue(next_val, token.1, token.2)); },
                         Tokens::ClosingBracket => panic!("{}", TokenError::UnexpectedValue(&"]")),
                         Tokens::OpeningBracket => {
                             if next_val.contains(&"obj value") {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Array(self.parse_array()));
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
                         Tokens::String(ref string_val) => {
@@ -136,14 +137,14 @@ impl<'a> Parser<'a> {
                                 continue 'obj;
                             }
 
-                            panic!("{}", TokenError::ExpectedValue(next_val));
+                            panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                         },
                         Tokens::Boolean(bool_val) => {
                             if next_val.contains(&"obj value") {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Boolean(bool_val));
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
                         Tokens::Integer(int_val) => {
@@ -151,7 +152,7 @@ impl<'a> Parser<'a> {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Integer(int_val));
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
                         Tokens::Float(float_val) => {
@@ -159,7 +160,7 @@ impl<'a> Parser<'a> {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Float(float_val));
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
                         Tokens::Null => {
@@ -167,13 +168,13 @@ impl<'a> Parser<'a> {
                                 next_val = vec![",", "}"];
                                 object.insert(current_keyword.clone(), JSON::Null);
                             } else {
-                                panic!("{}", TokenError::ExpectedValue(next_val));
+                                panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2));
                             }
                         },
                         Tokens::Comma => {
-                            if next_val.contains(&",") { next_val = vec!["obj keyword"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                            if next_val.contains(&",") { next_val = vec!["obj keyword"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                         },
-                        Tokens::Colon => if next_val.contains(&":") { next_val = vec!["obj value"]; } else { panic!("{}", TokenError::ExpectedValue(next_val)); }
+                        Tokens::Colon => if next_val.contains(&":") { next_val = vec!["obj value"]; } else { panic!("{}", TokenError::ExpectedValue(next_val, token.1, token.2)); }
                     }
                 },
                 None => break 'obj
