@@ -23,6 +23,30 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_get_1() {
+        let mut test1 = File::open("src/test1.json").unwrap();
+        let mut contents = String::new();
+        test1.read_to_string(&mut contents).unwrap();
+        let json = Parser::new(contents.as_str()).parse();
+        let expression_1 = json.get("pageInfo.resultsPerPage");
+        let expression_2 = json.get("items.#.id");
+        let expression_3 = json.get("items.#(id.kind=='youtube#video')#.etag");
+        let expression_4 = json.get("#(pageInfo.totalResults>4000)");
+        let expression_5 = json.get("items.#");
+        let expression_6 = json.get("items.2");
+        eprintln!(
+        "EXPRESSION 1: {:?}\n\nEXPRESSION 2: {:?}\n\nEXPRESSION 3: {:?}\n\nEXPRESSION 4: {:?}\n\nEXPRESSION 5: {:?}\n\nEXPRESSION 6: {:?}\n\n",
+        expression_1,
+        expression_2,
+        expression_3,
+        expression_4,
+        expression_5,
+        expression_6
+        );
+
+    }
+
+    #[test]
     fn test_expressions() {
         let mut test1 = File::open("src/test1.json").unwrap();
         let mut contents = String::new();
@@ -30,7 +54,7 @@ mod test {
         let json = Parser::new(contents.as_str()).parse();
         let expression_1 = json.test_get_expressions("pageInfo.resultsPerPage");
         let expression_2 = json.test_get_expressions("items.#.kind");
-        let expression_3 = json.test_get_expressions("items.#.#(id.kind=='youtube#video')");
+        let expression_3 = json.test_get_expressions("items.#(id.kind=='youtube#video')#.etag");
         let expression_4 = json.test_get_expressions("#(pageInfo.totalResults>4000)");
         let expression_5 = json.test_get_expressions("items.#");
         let expression_6 = json.test_get_expressions("items.2");
@@ -82,7 +106,7 @@ mod test {
         test1.read_to_string(&mut contents).unwrap();
         let json = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", json);
-        assert_eq!(1, 1);
+        assert_eq!(json["items"][0]["id"]["kind"], "youtube#video");
     }
 
     #[test]

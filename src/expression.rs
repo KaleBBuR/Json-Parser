@@ -12,16 +12,423 @@ pub struct ParseExpression<'a> {
 impl<'a> ParseExpression<'a> {
     pub fn new(expression: &'a str, json: &'a JSON) -> Self {
         Self {
-            parse: Expressions::new(expression, json),
+            parse: Expressions::new(expression),
             json
         }
     }
 
-    // pub fn parse_expression(&mut self) -> JSON {
+    pub fn parse_expression(&mut self) -> JSON {
+        let mut hashtag = false;
+        let mut arr: Vec<JSON> = Vec::new();
+        let mut json = self.json.to_owned();
+        'expression_parse: while let Some(expression) = self.step() {
+            match expression {
+                Expression::Dot => continue 'expression_parse,
+                Expression::Key(ref key) => {
+                    match hashtag {
+                        true => {
+                            let mut return_arr: Vec<JSON> = Vec::new();
+                            for obj in arr.iter() {
+                                match obj.get_obj() {
+                                    Some(ref json_obj) => {
+                                        return_arr.push(json_obj[key].clone());
+                                    },
+                                    None => panic!("Expected Object for `{}`!", key)
+                                }
+                            }
 
-    // }
+                            match self.parse.expression.peek() {
+                                Some(ref item) => {
+                                    match item {
+                                        '.' => {
+                                            arr = return_arr;
+                                            continue 'expression_parse
+                                        },
+                                        _ => panic!("Expected `.` after `{}`", key)
+                                    }
+                                },
+                                None => return JSON::Array(return_arr)
+                            }
+                        },
+                        false => {
+                            json = json[key.clone()].clone();
+                            match self.parse.expression.peek() {
+                                Some(ref item) => {
+                                    match item {
+                                        '.' => continue 'expression_parse,
+                                        _ => panic!("Expected `.` after `{}`", key)
+                                    }
+                                },
+                                None => return json
+                            }
+                        }
+                    }
+                },
+                Expression::Index(ref index) => {
+                    json = json[index.clone()].clone();
+                    match self.parse.expression.peek() {
+                        Some(ref item) => {
+                            match item {
+                                '.' => continue 'expression_parse,
+                                _ => panic!("Expected `.` after `{}`", index)
+                            }
+                        },
+                        None => return json
+                    }
+                },
+                Expression::Hashtag => {
+                    match self.parse.expression.peek() {
+                        Some(ref item) => {
+                            match item {
+                                '.' => {
+                                    hashtag = true;
+                                    match json.get_arr() {
+                                        Some(json_arr) => arr = json_arr,
+                                        None => panic!("Expected Array!")
+                                    };
+                                    self.step();
+                                    continue 'expression_parse
+                                },
+                                _ => panic!("Expected `.` after #")
+                            }
+                        },
+                        None => {
+                            match json.get_arr() {
+                                Some(arr) => return JSON::Integer(arr.len() as i64),
+                                None => panic!("Expected Array!")
+                            }
+                        }
+                    }
+                },
+                Expression::Query(ref query) => {
+                    let mut comparison: &str = "";
+                    let mut query_return_arr: Vec<JSON> = Vec::new();
+                    if *query.last().unwrap() == Expression::Hashtag {
+                        match json.get_arr() {
+                            Some(json_arr) => {
+                                arr = json_arr.clone();
+                                query_return_arr = json_arr.clone();
+                            },
+                            None => panic!("Expected array for query!")
+                        }
+                        hashtag = true;
+                    }
 
-    pub fn get_expression(&mut self) -> Vec<Expression> {
+                    for (i, expression) in query.iter().enumerate() {
+                        match *expression {
+                            Expression::Dot | Expression::Hashtag | Expression::OpenParantheses | Expression::ClosingParantheses => continue,
+                            Expression::Key(ref key) => {
+                                eprintln!("KEY: {}", key);
+                                match hashtag {
+                                    true => {
+                                        let mut return_arr: Vec<JSON> = Vec::new();
+                                        eprintln!("ARR: {:?}", arr);
+                                        for obj in arr.iter() {
+                                            match obj.get_obj() {
+                                                Some(ref json_obj) => {
+                                                    return_arr.push(json_obj[key].clone());
+                                                },
+                                                None => panic!("Expected Object for `{}`!", key)
+                                            }
+                                        }
+
+                                        match query.get(i+1) {
+                                            Some(ref item) => {
+                                                match item {
+                                                    Expression::Dot | Expression::EqualTo | Expression::NotEqualTo | Expression::GreaterThan | Expression::GreaterThanEqual | Expression::LessThan | Expression::LessThanEqual => {
+                                                        arr = return_arr;
+                                                        continue
+                                                    },
+                                                    _ => panic!("Unxpected character: `{:?}` after `{}`", item, key)
+                                                }
+                                            },
+                                            None => panic!("Expected more after `{}`!", key)
+                                        }
+                                    },
+                                    false => {
+                                        json = json[key.clone()].clone();
+                                    }
+                                }
+                            },
+                            Expression::Index(ref index) => {
+                                json = json[index.clone()].clone();
+                            },
+                            Expression::GreaterThan => {
+                                comparison = ">";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` after `>`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` after `>`")
+                                }
+                            },
+                            Expression::GreaterThanEqual => {
+                                comparison = ">=";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` after `>=`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` after `>=`")
+                                }
+                            },
+                            Expression::LessThan => {
+                                comparison = "<";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` after `<`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` after `<`")
+                                }
+                            },
+                            Expression::LessThanEqual => {
+                                comparison = "<=";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` after `<=`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` after `<=`")
+                                }
+                            },
+                            Expression::EqualTo => {
+                                comparison = "==";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) | Expression::String(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` or `String` after `==`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` or `String` after `==`")
+                                }
+                            },
+                            Expression::NotEqualTo => {
+                                comparison = "!=";
+                                match query.get(i+1) {
+                                    Some(ref item) => {
+                                        match item {
+                                            Expression::Float(_) | Expression::Int(_) | Expression::String(_) => continue,
+                                            _ => panic!("Expected `Int` or `Float` or `String` after `==`")
+                                        }
+                                    },
+                                    None => panic!("Expected `Int` or `Float` or `String` after `==`")
+                                }
+                            },
+                            Expression::Float(ref float_val) => {
+                                let mut return_arr = Vec::new();
+                                match comparison {
+                                    "==" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val == gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "!=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val != gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "<=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val <= gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "<" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val < gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    ">" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val > gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    ">=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_float() {
+                                                Some(gotten_float) => {
+                                                    if *float_val >= gotten_float {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    _ => panic!("Unknown comparison! `{}`", comparison)
+                                }
+
+                                arr = return_arr;
+                            },
+                            Expression::Int(ref int_val) => {
+                                let mut return_arr = Vec::new();
+                                match comparison {
+                                    "==" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val == gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "!=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val != gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "<=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val <= gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    "<" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val < gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    ">" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val > gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    ">=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_int() {
+                                                Some(gotten_int) => {
+                                                    if *int_val >= gotten_int {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected Integer!")
+                                            }
+                                        }
+                                    },
+                                    _ => panic!("Unknown comparison! `{}`", comparison)
+                                }
+
+                                arr = return_arr;
+                            },
+                            Expression::String(ref string_val) => {
+                                let mut return_arr = Vec::new();
+                                match comparison {
+                                    "==" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_string() {
+                                                Some(gotten_string) => {
+                                                    if *string_val == gotten_string {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected String!")
+                                            }
+                                        }
+                                    },
+                                    "!=" => {
+                                        for (i, item) in arr.iter().enumerate() {
+                                            match item.get_string() {
+                                                Some(gotten_string) => {
+                                                    if *string_val != gotten_string {
+                                                        return_arr.push(query_return_arr[i].clone());
+                                                    }
+                                                },
+                                                None => panic!("Expected String!")
+                                            }
+                                        }
+                                    },
+                                    _ => panic!("Unexpected comparison! `{}`", comparison)
+                                }
+
+                                arr = return_arr;
+                            }
+                            _ => panic!("Unknown expression -> `{:?}`", expression)
+                        }
+                    }
+                }
+                _ => panic!("Unknown expression -> `{:?}`", expression)
+            }
+        }
+
+        json
+    }
+
+    pub fn get_expressions(&mut self) -> Vec<Expression> {
         let mut expressions: Vec<Expression> = Vec::new();
         while let Some(expression) = self.step() {
             expressions.push(expression);
@@ -42,10 +449,9 @@ impl<'a> ParseExpression<'a> {
 
 struct Expressions<'a> {
     expression: Peekable<Chars<'a>>,
-    json: &'a JSON
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Expression {
     Hashtag,
     EqualTo,
@@ -66,10 +472,9 @@ pub enum Expression {
 }
 
 impl<'a> Expressions<'a> {
-    pub fn new(expression: &'a str, json: &'a JSON) -> Self {
+    pub fn new(expression: &'a str) -> Self {
         Self {
             expression: expression.chars().peekable(),
-            json
         }
     }
 
@@ -187,6 +592,7 @@ impl<'a> Expressions<'a> {
                                 '#' => {
                                     query.push(Expression::Hashtag);
                                     self.expression.next();
+                                    break 'query
                                 },
                                 '.' => break 'query,
                                 _ => panic!("Unexpected Character! -> `{}`", item)

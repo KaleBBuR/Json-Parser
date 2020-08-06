@@ -12,8 +12,8 @@
             "kind": "youtube#searchResult",
             "etag": "m2yskBQFythfE4irbTIeOgYYfBU/QpOIr3QKlV5EUlzfFcVvDiJT0hw",
             "id": {
-              "kind": "youtube#video",
-              "videoID": "UCJowOS1R0FnhipXVqEnYU1A"
+              "kind": "youtube#channel",
+              "videoId": "UCJowOS1R0FnhipXVqEnYU1A"
             }
         },
         {

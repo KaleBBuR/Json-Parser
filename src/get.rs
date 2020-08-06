@@ -15,15 +15,16 @@ impl JSON {
         JSON::Object(HashMap::new())
     }
 
-    // pub fn get<'a, S> (self, expression: S) -> JSON
-    // where
-    //     S: Into<&'a str>
-    // {
-    //     Expressions::new(expression, self).parse_expression()
-    // }
+    pub fn get<'a, S> (&self, expression: S) -> JSON
+    where
+        S: Into<&'a str>
+    {
+        let expression = expression.into();
+        ParseExpression::new(expression, self).parse_expression()
+    }
 
     pub fn test_get_expressions(&self, expression: &str) -> Vec<Expression> {
-        ParseExpression::new(expression, &self).get_expression()
+        ParseExpression::new(expression, &self).get_expressions()
     }
 
     pub fn get_arr(&self) -> Option<Vec<JSON>> {
@@ -81,8 +82,15 @@ impl ops::Index<usize> for JSON {
 
     fn index(&self, index: usize) -> &Self::Output {
         match *self {
-            JSON::Array(ref json_arr) => json_arr.get(index).unwrap_or(&JSON::Null),
-            _ => &JSON::Null
+            JSON::Array(ref json_arr) => {
+                match json_arr.get(index) {
+                    Some(arr_item) => {
+                        arr_item
+                    },
+                    None => panic!("Expected Array!")
+                }
+            },
+            _ => panic!("Expected Array!")
         }
     }
 }
@@ -92,8 +100,15 @@ impl<'a> ops::Index<&'a str> for JSON {
 
     fn index(&self, index: &str) -> &Self::Output {
         match *self {
-            JSON::Object(ref json_obj) => json_obj.get(index).unwrap_or(&JSON::Null),
-            _ => &JSON::Null
+            JSON::Object(ref json_obj) => {
+                match json_obj.get(index) {
+                    Some(obj_item) => {
+                        obj_item
+                    },
+                    None => panic!("Expected Object!")
+                }
+            }
+             _ => panic!("Expected Object!")
         }
     }
 }
@@ -103,8 +118,15 @@ impl ops::Index<String> for JSON {
 
     fn index(&self, index: String) -> &Self::Output {
         match *self {
-            JSON::Object(ref json_obj) => json_obj.get(&index).unwrap_or(&JSON::Null),
-            _ => &JSON::Null
+            JSON::Object(ref json_obj) => {
+                match json_obj.get(&index) {
+                    Some(obj_item) => {
+                        obj_item
+                    },
+                    None => panic!("Expected Object!")
+                }
+            }
+             _ => panic!("Expected Object!")
         }
     }
 }
