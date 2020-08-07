@@ -2,7 +2,8 @@
 
 This is a simple JSON Parser made in rust to get a better understanding of how to use it's features and tools!
 
-### Examples
+## Examples
+
 ```rust
 use json_parser::parser::Parser;
 use json_parser::json::JSON;
@@ -77,7 +78,7 @@ mod test {
         let mut test1 = File::open("src/test1.json").unwrap();
         let mut contents = String::new();
         test1.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", json);
         assert_eq!(json["items"][0]["id"]["kind"], "youtube#video");
     }
@@ -87,7 +88,7 @@ mod test {
         let mut test2 = File::open("src/test2.json").unwrap();
         let mut contents = String::new();
         test2.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", json);
         assert!(json[0]["entities"]["hashtags"][0]["text"] == "Angular");
     }
@@ -97,7 +98,7 @@ mod test {
         let mut test3 = File::open("src/test3.json").unwrap();
         let mut contents = String::new();
         test3.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", json);
         assert_eq!(json,
             object!{
@@ -165,7 +166,7 @@ mod test {
         let mut test4 = File::open("src/test4.json").unwrap();
         let mut contents = String::new();
         test4.read_to_string(&mut contents).unwrap();
-        let arr = parser::Parser::new(contents.as_str()).parse();
+        let arr = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", arr);
         assert_eq!(arr, array![
             1, 2, 3, 4, 5.5, object!{
@@ -179,7 +180,7 @@ mod test {
         let mut test5 = File::open("src/test5.json").unwrap();
         let mut contents = String::new();
         test5.read_to_string(&mut contents).unwrap();
-        let obj = parser::Parser::new(contents.as_str()).parse();
+        let obj = Parser::new(contents.as_str()).parse();
         eprintln!("\n{:?}\n", obj);
         assert_eq!(obj, object!{
             "Hello" => "hi",
