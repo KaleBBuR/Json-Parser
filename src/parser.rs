@@ -1,30 +1,165 @@
+//! # Parser
+//!
+//! A struct Parser which is used to take in the incoming str full of json data and convert it to a JSON type
+
 use std::collections::HashMap;
 
 use crate::tokenizer::{Tokenizer, Tokens};
 use crate::errors::TokenError;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum JSON {
-    Boolean(bool),
-    Integer(i64),
-    Float(f64),
-    String(String),
-    Array(Vec<JSON>),
-    Object(HashMap<String, JSON>),
-    Null
-}
+use crate::json::JSON;
 
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>,
 }
 
 impl<'a> Parser<'a> {
+    /// This is how you would get a new parser! To let you start parsing your json data. You need it to be a str, not a String
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut file = File::open("json_file").unwrap();
+    /// let mut contents = String::new();
+    /// file.read_to_string(&mut contents).unwrap();
+    /// let parser = parser::Parser::new(contents.as_str())
+    /// ```
     pub fn new(json: &'a str) -> Self {
         Parser {
             tokenizer: Tokenizer::new(json),
         }
     }
 
+    /// With the parser you can now use the parse method, which finally turn your json string into usable json data!
+    /// This also returns to a JSON Enum, which will have all your values
+    ///
+    /// # Example
+    ///
+    /// Json file
+    /// ```
+    /// {
+    ///     "colors": [
+    ///         {
+    ///             "color": "black",
+    ///             "category": "hue",
+    ///             "type": "primary",
+    ///             "code": {
+    ///                 "rgba": [255,255,255,1],
+    ///                 "hex": "#000"
+    ///             }
+    ///         },
+    ///         {
+    ///             "color": "white",
+    ///             "category": "value",
+    ///             "code": {
+    ///                 "rgba": [0,0,0,1],
+    ///                 "hex": "#FFF"
+    ///             }
+    ///         },
+    ///         {
+    ///             "color": "red",
+    ///             "category": "hue",
+    ///             "type": "primary",
+    ///             "code": {
+    ///                 "rgba": [255,0,0,1],
+    ///                 "hex": "#FF0"
+    ///             }
+    ///         },
+    ///         {
+    ///             "color": "blue",
+    ///             "category": "hue",
+    ///             "type": "primary",
+    ///             "code": {
+    ///                 "rgba": [0,0,255,1],
+    ///                 "hex": "#00F"
+    ///             }
+    ///         },
+    ///         {
+    ///             "color": "yellow",
+    ///             "category": "hue",
+    ///             "type": "primary",
+    ///             "code": {
+    ///                 "rgba": [255,255,0,1],
+    ///                 "hex": "#FF0"
+    ///             }
+    ///         },
+    ///         {
+    ///             "color": "green",
+    ///             "category": "hue",
+    ///             "type": "secondary",
+    ///             "code": {
+    ///                 "rgba": [0,255,0,1],
+    ///                 "hex": "#0F0"
+    ///             }
+    ///         }
+    ///     ]
+    /// }
+    /// ```
+    ///
+    /// ```
+    /// let mut file = File::open("src/file.json").unwrap();
+    /// let mut contents = String::new();
+    /// file.read_to_string(&mut contents).unwrap();
+    /// let json = parser::Parser::new(contents.as_str()).parse();
+    /// assert_eq!(json,
+    ///     object!{
+    ///         "colors" => array![
+    ///             object!{
+    ///                 "color" => "black",
+    ///                 "category" => "hue",
+    ///                 "type" => "primary",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![255, 255, 255, 1],
+    ///                     "hex" => "#000"
+    ///                 }
+    ///             },
+    ///             object!{
+    ///                 "color" => "white",
+    ///                 "category" => "value",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![0, 0, 0, 1],
+    ///                     "hex" => "#FFF"
+    ///                 }
+    ///             },
+    ///             object!{
+    ///                 "color" => "red",
+    ///                 "category" => "hue",
+    ///                 "type" => "primary",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![255, 0, 0, 1],
+    ///                     "hex" => "#FF0"
+    ///                 }
+    ///             },
+    ///             object!{
+    ///                 "color" => "blue",
+    ///                 "category" => "hue",
+    ///                 "type" => "primary",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![0, 0, 255, 1],
+    ///                     "hex" => "#00F"
+    ///                 }
+    ///             },
+    ///             object!{
+    ///                 "color" => "yellow",
+    ///                 "category" => "hue",
+    ///                 "type" => "primary",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![255, 255, 0, 1],
+    ///                     "hex" => "#FF0"
+    ///                 }
+    ///             },
+    ///             object!{
+    ///                 "color" => "green",
+    ///                 "category" => "hue",
+    ///                 "type" => "secondary",
+    ///                 "code" => object!{
+    ///                     "rgba" => array![0, 255, 0, 1],
+    ///                     "hex" => "#0F0"
+    ///                 }
+    ///             }
+    ///         ]
+    ///     }
+    /// );
+    /// ```
     pub fn parse(&mut self) -> JSON {
         let token_data = self.tokenizer.next().expect("No value!");
         match token_data.0 {

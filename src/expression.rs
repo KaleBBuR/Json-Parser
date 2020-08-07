@@ -1,9 +1,10 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::parser::JSON;
+use crate::json::JSON;
 
 
+#[doc(hidden)]
 pub struct ParseExpression<'a> {
     parse: Expressions<'a>,
     json: &'a JSON,
@@ -447,11 +448,13 @@ impl<'a> ParseExpression<'a> {
     }
 }
 
+#[doc(hidden)]
 struct Expressions<'a> {
     expression: Peekable<Chars<'a>>,
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[doc(hidden)]
 pub enum Expression {
     Hashtag,
     EqualTo,

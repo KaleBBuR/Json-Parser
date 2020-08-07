@@ -3,6 +3,7 @@ use std::str::Chars;
 
 use crate::errors::TokenError;
 
+#[doc(hidden)]
 pub enum Tokens {
     OpeningCurlyBrace,
     ClosingCurlyBrace,
@@ -17,6 +18,7 @@ pub enum Tokens {
     Null
 }
 
+#[doc(hidden)]
 pub struct Tokenizer<'a> {
     pub json_source: Peekable<Chars<'a>>,
     _line: usize,

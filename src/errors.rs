@@ -1,6 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
+#[doc(hidden)]
 pub enum TokenError<'a> {
     UnexpectedValue(&'a str),
     ExpectedValue(Vec<&'a str>, usize, usize)
