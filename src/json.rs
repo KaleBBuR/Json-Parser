@@ -3,7 +3,6 @@
 //! This is all the functions JSON struct can do.
 
 use std::{
-    fmt,
     ops,
     collections::HashMap,
     str::FromStr
