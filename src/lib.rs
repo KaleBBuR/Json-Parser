@@ -33,11 +33,10 @@
 
 pub mod json;
 
-pub mod parser;
+pub mod just;
 
 #[macro_use]
 mod macros;
 
-mod errors;
 mod expression;
-mod tokenizer;
+mod tests;

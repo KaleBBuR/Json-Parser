@@ -1,14 +1,16 @@
-
 //! # JSON
 //!
 //! This is all the functions JSON struct can do.
 
-use std::collections::HashMap;
-#[allow(unused_imports)]
-use std::fmt;
-use std::ops;
+use std::{
+    fmt,
+    ops,
+    collections::HashMap,
+    str::FromStr
+};
 
-use crate::expression::{Expression, ParseExpression};
+use crate::expression::ParseExpression;
+use crate::just::{TokenError, JUST, Tokenize};
 
 /// Represents all the JSON values
 #[derive(Debug, Clone, PartialEq)]
@@ -36,17 +38,7 @@ pub enum JSON {
 }
 
 impl JSON {
-    #[doc(hidden)]
-    pub fn new_arr() -> Vec<JSON> {
-        Vec::new()
-    }
-
-    #[doc(hidden)]
-    pub fn new_obj() -> HashMap<String, JSON> {
-        HashMap::new()
-    }
-
-    /// Allows you get items from a JSON
+     /// Allows you get items from a JSON
     ///
     /// # Examples
     ///
@@ -128,11 +120,6 @@ impl JSON {
         ParseExpression::new(expression, self).parse_expression()
     }
 
-    #[doc(hidden)]
-    pub fn test_get_expressions(&self, expression: &str) -> Vec<Expression> {
-        ParseExpression::new(expression, &self).get_expressions()
-    }
-
     /// Returns an Option Array (Vec)
     ///
     /// # Examples
@@ -149,6 +136,7 @@ impl JSON {
     /// };
     /// assert_eq!(object["words"].get_arr(), Some(array![1, 3, true, "hello"]));
     /// ```
+    #[inline]
     pub fn get_arr(&self) -> Option<Vec<JSON>> {
         match self {
             JSON::Array(json_arr) => Some(json_arr.to_vec()),
@@ -172,6 +160,7 @@ impl JSON {
     ///     }
     /// };
     /// assert_eq!(obj["cities"].get_obj(), Some(object!{"california" => "San diego", "texas" => "Dallas"}));
+    #[inline]
     pub fn get_obj(&self) -> Option<HashMap<String, JSON>> {
         match self {
             JSON::Object(json_obj) => Some(json_obj.to_owned()),
@@ -188,6 +177,7 @@ impl JSON {
     /// assert_eq!(array[0].get_int(), Some(1));
     /// assert_eq!(array[3].get_int(), Some(10));
     /// ```
+    #[inline]
     pub fn get_int(&self) -> Option<i64> {
         match *self {
             JSON::Integer(int_val) => Some(int_val),
@@ -204,6 +194,7 @@ impl JSON {
     /// assert_eq!(array[1].get_float(), Some(2.5));
     /// assert_eq!(array[6].get_float(), Some(5.6));
     /// ```
+    #[inline]
     pub fn get_float(&self) -> Option<f64> {
         match *self {
             JSON::Float(float) => Some(float),
@@ -220,6 +211,7 @@ impl JSON {
     /// assert_eq!(array[7].get_string(), Some(String::from("hello")));
     /// assert_eq!(array[9].get_string(), Some(String::from("no u")));
     /// ```
+    #[inline]
     pub fn get_string(&self) -> Option<String> {
         match *self {
             JSON::String(ref string) => Some(string.to_owned()),
@@ -236,6 +228,7 @@ impl JSON {
     /// assert_eq!(array[2].get_bool(), Some(true));
     /// assert_eq!(array[4].get_bool(), Some(false));
     /// ```
+    #[inline]
     pub fn get_bool(&self) -> Option<bool> {
         match *self {
             JSON::Boolean(boolean) => Some(boolean),
@@ -252,11 +245,25 @@ impl JSON {
     /// assert_eq!(array[8].is_null(), Some(false));
     /// assert_eq!(array[10].is_null(), Some(true));
     /// ```
+    #[inline]
     pub fn is_null(&self) -> bool {
         match *self {
             JSON::Null => true,
             _ => false,
         }
+    }
+}
+
+impl FromStr for JSON {
+    type Err = TokenError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let x = s.chars().peekable().tokens()?;
+        let mut just = JUST {
+            tokens: Box::new(x.iter())
+        };
+
+        Ok(just.parse()?)
     }
 }
 
@@ -284,7 +291,8 @@ impl<'a> ops::Index<&'a str> for JSON {
     fn index(&self, index: &str) -> &Self::Output {
         match *self {
             JSON::Object(ref json_obj) => {
-                match json_obj.get(index) {
+                println!("{}", index);
+                match json_obj.get(&format!("{}", index)) {
                     Some(obj_item) => {
                         obj_item
                     },
@@ -302,7 +310,8 @@ impl ops::Index<String> for JSON {
     fn index(&self, index: String) -> &Self::Output {
         match *self {
             JSON::Object(ref json_obj) => {
-                match json_obj.get(&index) {
+                println!("{:?}", json_obj);
+                match json_obj.get(&format!("{}", index)) {
                     Some(obj_item) => {
                         obj_item
                     },
@@ -428,36 +437,4 @@ impl PartialEq<HashMap<String, JSON>> for JSON {
         }
     }
 }
-
-// impl fmt::Display for JSON {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match *self {
-//             JSON::Boolean(ref bool_val) => if *bool_val { write!(f, "true") } else { write!(f, "false") },
-//             JSON::Integer(ref int_val) => write!(f, "{}", int_val),
-//             JSON::Float(ref float_val) => write!(f, "{}", float_val),
-//             JSON::String(ref string_val) => write!(f, "{}", string_val),
-//             JSON::Null => write!(f, "null"),
-//             JSON::Array(ref arr_vals) => {
-//                 let mut arr_str = String::new();
-//                 for (i, item) in arr_vals.clone().iter().enumerate() {
-//                     if i < (arr_vals.len()-1) {
-//                         arr_str.push_str(format!("{}, ", item).as_str())
-//                     } else {
-//                         arr_str.push_str(format!("{}", item).as_str())
-//                     }
-//                 }
-//                 write!(f, "[{}]", arr_str)
-//             },
-//             JSON::Object(ref obj_vals) => {
-//                 let mut obj = HashMap::new();
-
-//                 for (key, value) in obj_vals.clone().iter() {
-//                     obj.insert(format!("{}", key), format!("{}", value));
-//                 }
-
-//                 write!(f, "{:?}", obj)
-//             },
-//         }
-//     }
-// }
 

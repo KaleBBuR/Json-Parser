@@ -3,7 +3,6 @@ use std::str::Chars;
 
 use crate::json::JSON;
 
-
 #[doc(hidden)]
 pub struct ParseExpression<'a> {
     parse: Expressions<'a>,
@@ -429,15 +428,7 @@ impl<'a> ParseExpression<'a> {
         json
     }
 
-    pub fn get_expressions(&mut self) -> Vec<Expression> {
-        let mut expressions: Vec<Expression> = Vec::new();
-        while let Some(expression) = self.step() {
-            expressions.push(expression);
-        }
-
-        expressions
-    }
-
+    #[inline]
     fn step(&mut self) -> Option<Expression> {
         let expression_type = self.parse.next();
         if expression_type.is_some() {

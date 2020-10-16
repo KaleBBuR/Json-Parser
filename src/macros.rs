@@ -22,7 +22,8 @@
 macro_rules! array {
     [] => {
         {
-            $crate::json::JSON::new_arr()
+            let vec: Vec<$crate::json::JSON> = Vec::new();
+            vec
         }
     };
 
@@ -58,7 +59,8 @@ macro_rules! array {
 macro_rules! object {
     {} => {
         {
-            $crate::json::JSON::new_obj()
+            let hm: HashMap<String, $crate::json::JSON> = std::collections::HashMap::new();
+            hm
         }
     };
 

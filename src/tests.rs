@@ -1,24 +1,16 @@
-
-#[allow(unused_imports)]
-use std::fs::File;
-#[allow(unused_imports)]
-use std::io::Read;
-
-#[doc(hidden)]
-fn main() {
-    println!("JSON Parser!");
-}
-
 #[cfg(test)]
 mod test {
-    use super::*;
+    use std::fs::File;
+    use std::io::Read;
+    use std::str::FromStr;
+    use crate::json;
 
     #[test]
     fn test_get_1() {
         let mut test1 = File::open("src/test1.json").unwrap();
         let mut contents = String::new();
         test1.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = json::JSON::from_str(contents.as_str()).unwrap();
         let expression_1 = json.get("pageInfo.resultsPerPage");
         let expression_2 = json.get("items.#.id");
         let expression_3 = json.get("items.#(id.kind=='youtube#video')#.etag");
@@ -42,13 +34,13 @@ mod test {
         let mut test1 = File::open("src/test1.json").unwrap();
         let mut contents = String::new();
         test1.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
-        let expression_1 = json.test_get_expressions("pageInfo.resultsPerPage");
-        let expression_2 = json.test_get_expressions("items.#.kind");
-        let expression_3 = json.test_get_expressions("items.#(id.kind=='youtube#video')#.etag");
-        let expression_4 = json.test_get_expressions("#(pageInfo.totalResults>4000)");
-        let expression_5 = json.test_get_expressions("items.#");
-        let expression_6 = json.test_get_expressions("items.2");
+        let json = json::JSON::from_str(contents.as_str()).unwrap();
+        let expression_1 = json.get("pageInfo.resultsPerPage");
+        let expression_2 = json.get("items.#.kind");
+        let expression_3 = json.get("items.#(id.kind=='youtube#video')#.etag");
+        let expression_4 = json.get("#(pageInfo.totalResults>4000)");
+        let expression_5 = json.get("items.#");
+        let expression_6 = json.get("items.2");
         eprintln!(
         "EXPRESSION 1: {:?}\n\nEXPRESSION 2: {:?}\n\nEXPRESSION 3: {:?}\n\nEXPRESSION 4: {:?}\n\nEXPRESSION 5: {:?}\n\nEXPRESSION 6: {:?}\n\n",
         expression_1,
@@ -102,9 +94,9 @@ mod test {
         let mut test1 = File::open("src/test1.json").unwrap();
         let mut contents = String::new();
         test1.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = json::JSON::from_str(contents.as_str()).unwrap();
         eprintln!("\n{:?}\n", json);
-        assert_eq!(json["items"][0]["id"]["kind"], "youtube#video");
+        assert_eq!(json["items"][0]["id"]["kind"].get_string().unwrap(), "youtube#video");
     }
 
     #[test]
@@ -112,7 +104,7 @@ mod test {
         let mut test2 = File::open("src/test2.json").unwrap();
         let mut contents = String::new();
         test2.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = json::JSON::from_str(contents.as_str()).unwrap();
         eprintln!("\n{:?}\n", json);
         assert!(json[0]["entities"]["hashtags"][0]["text"] == "Angular");
     }
@@ -122,7 +114,7 @@ mod test {
         let mut test3 = File::open("src/test3.json").unwrap();
         let mut contents = String::new();
         test3.read_to_string(&mut contents).unwrap();
-        let json = parser::Parser::new(contents.as_str()).parse();
+        let json = json::JSON::from_str(contents.as_str()).unwrap();
         eprintln!("\n{:?}\n", json);
         assert_eq!(json,
             object!{
@@ -190,7 +182,7 @@ mod test {
         let mut test4 = File::open("src/test4.json").unwrap();
         let mut contents = String::new();
         test4.read_to_string(&mut contents).unwrap();
-        let arr = parser::Parser::new(contents.as_str()).parse();
+        let arr = json::JSON::from_str(contents.as_str()).unwrap();
         eprintln!("\n{:?}\n", arr);
         assert_eq!(arr, array![
             1, 2, 3, 4, 5.5, object!{
@@ -204,7 +196,7 @@ mod test {
         let mut test5 = File::open("src/test5.json").unwrap();
         let mut contents = String::new();
         test5.read_to_string(&mut contents).unwrap();
-        let obj = parser::Parser::new(contents.as_str()).parse();
+        let obj = json::JSON::from_str(contents.as_str()).unwrap();
         eprintln!("\n{:?}\n", obj);
         assert_eq!(obj, object!{
             "Hello" => "hi",
